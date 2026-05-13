@@ -204,6 +204,14 @@ function updateMap() {
   mapCtx.putImageData(imgData, 0, 0, 1, 1, MAP_SIZE - 2, MAP_SIZE - 2);
 }
 
+document.getElementById('clear-water').addEventListener('click', e => {
+  if (e.button !== 0) return;
+  for (let i = 0; i < isWaterBuf.length; i++) {
+    isWaterBuf[i] = false;
+  }
+  updateMap();
+});
+
 document.getElementById('invert-water').addEventListener('click', e => {
   if (e.button !== 0) return;
   for (let i = 0; i < isWaterBuf.length; i++) {

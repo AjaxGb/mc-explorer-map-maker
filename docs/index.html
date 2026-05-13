@@ -4,19 +4,26 @@
 	<title>Minecraft Exploration Map Maker</title>
 	<link rel="shortcut icon" href="favicon.png" type="image/png" sizes="16x16">
 	<link rel="stylesheet" type="text/css" href="main.css">
-    <script type="module" src="main.js"></script>
+    <script type="module" src="main.js?v=1"></script>
 </head>
 <body>
     <main>
         <div id="map-bg">
             <canvas id="map-output" width="128" height="128"></canvas>
         </div>
+        <noscript>
+            <h3>The editor requires JavaScript to work. Please enable it.</h3>
+        </noscript>
+        <h3 id="old-browser-warn" hidden>
+            Your browser is missing support for some features.
+        </h3>
         <p>
             Click to draw. Hold shift to erase. Scroll to change brush size.
             <br>
             (Brush: <span id="brush-size">5</span>px)
         </p>
         <p>
+            <input id="clear-water" type="button" value="Clear water">
             <input id="invert-water" type="button" value="Invert water">
             <input id="load-water" type="button" value="Load water mask">
             <input id="save-water" type="button" value="Save water mask">
@@ -28,5 +35,10 @@
             <label>Z: <input id="center-z" type="number" step="1" value="0"></label>
         </p>
     </main>
+    <script>
+        if (!('CompressionStream' in window)) {
+            document.getElementById('old-browser-warn').hidden = false;
+        }
+    </script>
 </body>
 </html>
