@@ -242,8 +242,9 @@ document.getElementById('save-water').addEventListener('click', e => {
 });
 
 // Minimum data necessary for Minecraft to load it as a valid map
-const nbtPrefix = new TextEncoder('utf-8').encode(
-  '\x0a\0\0\x0a\0\x04data\x03\0\x07xCenter\xff\xff\xff\xff\x03\0\x07zCenter\xff\xff\xff\xff\x01\0\x09dimension\x02\x07\0\x06colors\0\0\x40\0');
+const nbtPrefix = new Uint8Array(Array.from(
+  '\x0a\0\0\x0a\0\x04data\x03\0\x07xCenter\xff\xff\xff\xff\x03\0\x07zCenter\xff\xff\xff\xff\x01\0\x09dimension\x02\x07\0\x06colors\0\0\x40\0',
+  c => c.charCodeAt(0)));
 const nbtSuffix = new Uint8Array(2);
 
 const saveNbt = document.getElementById('save-nbt');
