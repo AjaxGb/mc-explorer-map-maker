@@ -254,7 +254,7 @@ function nbtTag(id, name, payloadSize, encode) {
 }
 
 function nbtByte(name, value) {
-  return nbtTag(1, name, 4, dv => dv.setInt8(3, value));
+  return nbtTag(1, name, 4, dv => dv.setInt8(1, value));
 }
 
 function nbtInt(name, value) {
