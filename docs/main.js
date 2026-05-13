@@ -249,20 +249,20 @@ function nbtTag(id, name, payloadSize, encode) {
   const dv = new DataView(bytes.buffer);
   dv.setUint16(1, name.length);
   new TextEncoder().encodeInto(name, bytes.subarray(3));
-  if (encode) encode(dv, bytes);
+  if (encode) encode(dv, 3 + name.length);
   return bytes;
 }
 
 function nbtByte(name, value) {
-  return nbtTag(1, name, 1, dv => dv.setInt8(3, value));
+  return nbtTag(1, name, 1, (dv, i) => dv.setInt8(i, value));
 }
 
 function nbtInt(name, value) {
-  return nbtTag(3, name, 4, dv => dv.setInt32(3, value));
+  return nbtTag(3, name, 4, (dv, i) => dv.setInt32(i, value));
 }
 
 function nbtByteArray(name, size) {
-  return nbtTag(7, name, 4, dv => dv.setInt32(3, size));
+  return nbtTag(7, name, 4, (dv, i) => dv.setInt32(i, size));
 }
 
 function nbtCompound(name) {
