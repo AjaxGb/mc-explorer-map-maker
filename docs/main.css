@@ -44,3 +44,11 @@ main {
   left: var(--map-border);
   image-rendering: pixelated;
 }
+
+main p {
+  margin-bottom: 0;
+}
+
+input[type="number"] {
+  width: 5em;
+}

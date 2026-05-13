@@ -1,6 +1,8 @@
 const mapBg = document.getElementById('map-bg');
 const mapOut = document.getElementById('map-output');
 const brushSizeOut = document.getElementById('brush-size');
+const centerX = document.getElementById('center-x');
+const centerZ = document.getElementById('center-z');
 
 const mapCtx = mapOut.getContext('2d');
 
@@ -241,16 +243,33 @@ document.getElementById('save-water').addEventListener('click', e => {
   }, 'image/png');
 });
 
-// DataVersion = 1519 = 1.13, first full version to have DataVersion in map data.
-const nbtPrefix = new Uint8Array(Array.from(
-  '\x0a\0\0' + '\x0a\0\x04data' + '\x03\0\x07xCenter\x80\0\0\0' + '\x03\0\x07zCenter\x80\0\0\0' + '\x01\0\x09dimension\x02' +
-  '\x01\0\x05scale\x01' + '\x01\0\x10trackingPosition\0' + '\x01\0\x06locked\x01' + '\x07\0\x06colors\0\0\x40\0',
-  c => c.charCodeAt(0)
-));
-const nbtSuffix =  new Uint8Array(Array.from(
-  '\0' + '\x03\0\x0bDataVersion\0\0\x05\0xef' + '\0',
-  c => c.charCodeAt(0)
-));
+function nbtTag(id, name, payloadSize, encode) {
+  const bytes = new Uint8Array(3 + name.length + payloadSize);
+  bytes[0] = id;
+  const dv = new DataView(bytes.buffer);
+  dv.setUint16(1, name.length);
+  new TextEncoder().encodeInto(name, bytes.subarray(3));
+  if (encode) encode(dv, bytes);
+  return bytes;
+}
+
+function nbtByte(name, value) {
+  return nbtTag(1, name, 4, dv => dv.setInt8(3, value));
+}
+
+function nbtInt(name, value) {
+  return nbtTag(3, name, 4, dv => dv.setInt32(3, value));
+}
+
+function nbtByteArray(name, size) {
+  return nbtTag(7, name, 4, dv => dv.setInt32(3, size));
+}
+
+function nbtCompound(name) {
+  return nbtTag(10, name, 0);
+}
+
+const NBT_END = new Uint8Array(1);
 
 const saveNbt = document.getElementById('save-nbt');
 saveNbt.addEventListener('click', async e => {
@@ -260,9 +279,17 @@ saveNbt.addEventListener('click', async e => {
 
   try {
     const stream = new ReadableStream({ start: controller => {
-      controller.enqueue(nbtPrefix);
+      controller.enqueue(nbtCompound(''));
+      controller.enqueue(nbtCompound('data'));
+      controller.enqueue(nbtInt('xCenter', parseInt(centerX.value)));
+      controller.enqueue(nbtInt('zCenter', parseInt(centerZ.value)));
+      controller.enqueue(nbtByte('dimension', 0));
+      controller.enqueue(nbtByte('scale', 1));
+      controller.enqueue(nbtByte('unlimitedTracking', 1));
+      controller.enqueue(nbtByteArray('colors', mapColorIndexBuf.length));
       controller.enqueue(mapColorIndexBuf);
-      controller.enqueue(nbtSuffix);
+      controller.enqueue(NBT_END);
+      controller.enqueue(NBT_END);
       controller.close();
     } }).pipeThrough(new CompressionStream("gzip"));
     const nbt = await new Response(stream).blob();
