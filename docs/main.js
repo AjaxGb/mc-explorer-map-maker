@@ -241,11 +241,16 @@ document.getElementById('save-water').addEventListener('click', e => {
   }, 'image/png');
 });
 
-// Minimum data necessary for Minecraft to load it as a valid map
+// DataVersion = 1519 = 1.13, first full version to have DataVersion in map data.
 const nbtPrefix = new Uint8Array(Array.from(
-  '\x0a\0\0\x0a\0\x04data\x03\0\x07xCenter\xff\xff\xff\xff\x03\0\x07zCenter\xff\xff\xff\xff\x01\0\x09dimension\x02\x07\0\x06colors\0\0\x40\0',
-  c => c.charCodeAt(0)));
-const nbtSuffix = new Uint8Array(2);
+  '\x0a\0\0' + '\x0a\0\x04data' + '\x03\0\x07xCenter\x80\0\0\0' + '\x03\0\x07zCenter\x80\0\0\0' + '\x01\0\x09dimension\x02' +
+  '\x01\0\x05scale\x01' + '\x01\0\x10trackingPosition\0' + '\x01\0\x06locked\x01' + '\x07\0\x06colors\0\0\x40\0',
+  c => c.charCodeAt(0)
+));
+const nbtSuffix =  new Uint8Array(Array.from(
+  '\0' + '\x03\0\x0bDataVersion\0\0\x05\0xef' + '\0',
+  c => c.charCodeAt(0)
+));
 
 const saveNbt = document.getElementById('save-nbt');
 saveNbt.addEventListener('click', async e => {
