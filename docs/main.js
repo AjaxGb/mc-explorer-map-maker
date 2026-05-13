@@ -31,8 +31,8 @@ let brushR = 2;
 function getMapPos(e) {
   const rect = mapOut.getBoundingClientRect();
   return [
-    Math.floor((e.clientX - rect.top) * MAP_SIZE / rect.width),
-    Math.floor((e.clientY - rect.left) * MAP_SIZE / rect.height),
+    Math.floor((e.clientX - rect.left) * MAP_SIZE / rect.width),
+    Math.floor((e.clientY - rect.top) * MAP_SIZE / rect.height),
   ];
 }
 
