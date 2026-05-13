@@ -15,7 +15,6 @@ maskCanvas.height = MAP_SIZE;
 const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
 const downloadLink = document.createElement('a');
-downloadLink.download = 'water-mask.png';
 document.body.appendChild(downloadLink);
 
 const fileInput = document.createElement('input');
@@ -211,6 +210,11 @@ document.getElementById('invert-water').addEventListener('click', e => {
   updateMap();
 });
 
+document.getElementById('load-water').addEventListener('click', e => {
+  if (e.button !== 0) return;
+  fileInput.click();
+});
+
 document.getElementById('save-water').addEventListener('click', e => {
   if (e.button !== 0) return;
   for (let i = 0; i < isWaterBuf.length; i++) {
@@ -230,19 +234,45 @@ document.getElementById('save-water').addEventListener('click', e => {
 
     const url = URL.createObjectURL(blob);
     downloadLink.href = url;
+    downloadLink.download = 'water-mask.png';
     downloadLink.click();
     URL.revokeObjectURL(url);
+
   }, 'image/png');
 });
 
-document.getElementById('load-water').addEventListener('click', e => {
-  if (e.button !== 0) return;
-  fileInput.click();
-});
+// Minimum data necessary for Minecraft to load it as a valid map
+const nbtPrefix = new TextEncoder('utf-8').encode(
+  '\x0a\0\0\x0a\0\x04data\x03\0\x07xCenter\xff\xff\xff\xff\x03\0\x07zCenter\xff\xff\xff\xff\x01\0\x09dimension\x02\x07\0\x06colors\0\0\x40\0');
+const nbtSuffix = new Uint8Array(2);
 
-document.getElementById('get-nbt').addEventListener('click', e => {
+const saveNbt = document.getElementById('save-nbt');
+saveNbt.addEventListener('click', async e => {
   if (e.button !== 0) return;
-  navigator.clipboard.writeText(`[B;${Array.from(mapColorIndexBuf, n => n + 'b')}]`);
+
+  saveNbt.disabled = true;
+
+  try {
+    const stream = new ReadableStream({ start: controller => {
+      controller.enqueue(nbtPrefix);
+      controller.enqueue(mapColorIndexBuf);
+      controller.enqueue(nbtSuffix);
+      controller.close();
+    } }).pipeThrough(new CompressionStream("gzip"));
+    const nbt = await new Response(stream).blob();
+
+    const url = URL.createObjectURL(nbt);
+    downloadLink.href = url;
+    downloadLink.download = 'map_N.dat';
+    downloadLink.click();
+    URL.revokeObjectURL(url);
+
+  } catch (e) {
+    alert('ERROR: Could not save NBT - ' + e.message);
+    console.error('Failed to save NBT', e);
+  } finally {
+    saveNbt.disabled = false;
+  }
 });
 
 fileInput.addEventListener('change', async e => {
@@ -281,6 +311,7 @@ fileInput.addEventListener('change', async e => {
   } catch (e) {
     if (imageLoader.src !== url) return;
     alert('ERROR: Could not load water mask - ' + e.message);
+    console.error('Could not load water mask', e);
   } finally {
     URL.revokeObjectURL(url);
   }
