@@ -1,3 +1,7 @@
-# Minecraft Exploration Map Maker
+# Minecraft Explorer Map Maker
 
-A tool for making blank exploration maps, similar to vanilla Minecraft.
+https://www.soltoder.com/mc-explorer-map-maker/
+
+![Example screenshot of a generated explorer map being held in game](screenshot.png)
+
+A tool for making blank explorer maps, similar to vanilla Minecraft.
