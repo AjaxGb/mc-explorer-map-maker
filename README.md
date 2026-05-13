@@ -1,2 +1,3 @@
-# mc-exploration-map-maker
-Tool for making blank exploration maps similar to vanilla Minecraft
+# Minecraft Exploration Map Maker
+
+A tool for making blank exploration maps, similar to vanilla Minecraft.

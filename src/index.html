@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Minecraft Exploration Map Maker</title>
+	<link rel="shortcut icon" href="favicon.png" type="image/png" sizes="16x16">
+	<link rel="stylesheet" type="text/css" href="main.css">
+    <script type="module" src="main.js"></script>
+</head>
+<body>
+    <main>
+        <div id="map-bg">
+            <canvas id="map-output" width="128" height="128"></canvas>
+        </div>
+        <p>
+            Click to draw, shift to erase, scroll to change brush size.
+            (Brush: <span id="brush-size">5</span>px)
+        </p>
+        <p>
+            <input id="invert-water" type="button" value="Invert water">
+            <input id="save-water" type="button" value="Save water mask">
+            <input id="load-water" type="button" value="Load water mask">
+            <input id="get-nbt" type="button" value="Copy colors NBT">
+        </p>
+    </main>
+</body>
+</html>
