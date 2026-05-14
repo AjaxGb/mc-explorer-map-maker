@@ -265,6 +265,10 @@ function nbtByte(name, value) {
   return nbtTag(1, name, 1, (dv, i) => dv.setInt8(i, value));
 }
 
+function nbtShort(name, value) {
+  return nbtTag(2, name, 2, (dv, i) => dv.setInt16(i, value));
+}
+
 function nbtInt(name, value) {
   return nbtTag(3, name, 4, (dv, i) => dv.setInt32(i, value));
 }
@@ -291,8 +295,11 @@ saveNbt.addEventListener('click', async e => {
       controller.enqueue(nbtCompound('data'));
       controller.enqueue(nbtInt('xCenter', parseInt(centerX.value)));
       controller.enqueue(nbtInt('zCenter', parseInt(centerZ.value)));
+      controller.enqueue(nbtShort('width', MAP_SIZE));
+      controller.enqueue(nbtShort('height', MAP_SIZE));
       controller.enqueue(nbtByte('dimension', 0));
       controller.enqueue(nbtByte('scale', 1));
+      controller.enqueue(nbtByte('trackingPosition', 1));
       controller.enqueue(nbtByte('unlimitedTracking', 1));
       controller.enqueue(nbtByteArray('colors', mapColorIndexBuf.length));
       controller.enqueue(mapColorIndexBuf);
