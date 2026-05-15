@@ -7,23 +7,34 @@ const centerZ = document.getElementById('center-z');
 const mapCtx = mapOut.getContext('2d');
 
 const MAP_SIZE = 128;
+/// Input buffer: 1 where water, 0 where not.
 const isWaterBuf = new Uint8Array(MAP_SIZE * MAP_SIZE);
+/// Output buffer with the map color indices, for NBT.
 const mapColorIndexBuf = new Uint8Array(MAP_SIZE * MAP_SIZE);
+/// Output RGB, to be shown in the display canvas.
 const mapRgbBuf = new Uint8ClampedArray(MAP_SIZE * MAP_SIZE * 4);
 
+/// Canvas used for converting `isWaterBuf` to and from mask images
 const maskCanvas = document.createElement('canvas');
 maskCanvas.width = MAP_SIZE;
 maskCanvas.height = MAP_SIZE;
 const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
+/// Link for downloading masks and NBT files
 const downloadLink = document.createElement('a');
 document.body.appendChild(downloadLink);
 
+/// File input for loading mask images
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.accept = 'image/*';
 const imageLoader = new Image();
-window.imageLoader = imageLoader;
+
+/////////////////////////////////////
+//                                 //
+//  WATER DRAWING INPUT            //
+//                                 //
+/////////////////////////////////////
 
 let isDrawing = false;
 let prevDrawPos = null;
@@ -37,6 +48,7 @@ function getMapPos(e) {
   ];
 }
 
+/// Bresenham's line algorithm
 function plotLine(x0, y0, x1, y1, callback) {
   const dx = Math.abs(x1 - x0);
   const sx = x0 < x1 ? 1 : -1;
@@ -70,11 +82,15 @@ function drawWater(e) {
   }
 
   plotLine(...(prevDrawPos ?? pos), ...pos, (x, y) => {
+    // Calculate bounding box of brush,
+    // clamped to the size of the map
     const minX = Math.max(x - brushR, 0);
     const minY = Math.max(y - brushR, 0);
     const maxX = Math.min(x + 1 + brushR, MAP_SIZE);
     const maxY = Math.min(y + 1 + brushR, MAP_SIZE);
 
+    // For each pixel in bounding box,
+    // check if it falls within the brush circle
     for (let iy = minY; iy < maxY; iy++) {
       for (let ix = minX; ix < maxX; ix++) {
         const dx = x - ix;
@@ -123,6 +139,10 @@ window.addEventListener('mouseup', e => {
 });
 
 window.addEventListener('mouseleave', e => {
+  // Mouse left window-- clear the prev pos,
+  // since we don't want to draw a line from
+  // wherever it left the window to wherever
+  // it re-enters.
   prevDrawPos = null;
 });
 
@@ -133,7 +153,31 @@ mapBg.addEventListener('wheel', e => {
   brushSizeOut.innerText = 1 + 2 * brushR;
 });
 
+document.getElementById('clear-water').addEventListener('click', e => {
+  if (e.button !== 0) return;
+  for (let i = 0; i < isWaterBuf.length; i++) {
+    isWaterBuf[i] = false;
+  }
+  updateMap();
+});
+
+document.getElementById('invert-water').addEventListener('click', e => {
+  if (e.button !== 0) return;
+  for (let i = 0; i < isWaterBuf.length; i++) {
+    isWaterBuf[i] = !isWaterBuf[i];
+  }
+  updateMap();
+});
+
+/////////////////////////////////////
+//                                 //
+//  EXPLORER MAP GENERATION        //
+//                                 //
+/////////////////////////////////////
+
 function updateMap() {
+  // Mostly copied verbatim from the decompilation
+
   for (let mx = 1; mx < MAP_SIZE - 1; mx++) {
     for (let mz = 1; mz < MAP_SIZE - 1; mz++) {
 
@@ -204,26 +248,11 @@ function updateMap() {
   mapCtx.putImageData(imgData, 0, 0, 1, 1, MAP_SIZE - 2, MAP_SIZE - 2);
 }
 
-document.getElementById('clear-water').addEventListener('click', e => {
-  if (e.button !== 0) return;
-  for (let i = 0; i < isWaterBuf.length; i++) {
-    isWaterBuf[i] = false;
-  }
-  updateMap();
-});
-
-document.getElementById('invert-water').addEventListener('click', e => {
-  if (e.button !== 0) return;
-  for (let i = 0; i < isWaterBuf.length; i++) {
-    isWaterBuf[i] = !isWaterBuf[i];
-  }
-  updateMap();
-});
-
-document.getElementById('load-water').addEventListener('click', e => {
-  if (e.button !== 0) return;
-  fileInput.click();
-});
+/////////////////////////////////////
+//                                 //
+//  WATER MASK SAVING AND LOADING  //
+//                                 //
+/////////////////////////////////////
 
 document.getElementById('save-water').addEventListener('click', e => {
   if (e.button !== 0) return;
@@ -251,11 +280,67 @@ document.getElementById('save-water').addEventListener('click', e => {
   }, 'image/png');
 });
 
+document.getElementById('load-water').addEventListener('click', e => {
+  if (e.button !== 0) return;
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', async e => {
+  if (fileInput.files.length === 0) return;
+  const url = URL.createObjectURL(fileInput.files[0]);
+  fileInput.value = null;
+  try {
+    imageLoader.src = '';
+    imageLoader.src = url;
+    await imageLoader.decode();
+
+    maskCtx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
+    maskCtx.drawImage(imageLoader,
+      0, 0, imageLoader.naturalWidth, imageLoader.naturalHeight,
+      0, 0, MAP_SIZE, MAP_SIZE);
+    const imgData = maskCtx.getImageData(0, 0, MAP_SIZE, MAP_SIZE, {
+      colorSpace: 'srgb',
+      pixelFormat: 'rgba-unorm8',
+    }).data;
+
+    for (let i = 0; i < isWaterBuf.length; i++) {
+      const a = imgData[i * 4 + 3];
+      if (a < 5) {
+        // Mostly transparent
+        isWaterBuf[i] = false;
+      } else {
+        const r = imgData[i * 4 + 0];
+        const g = imgData[i * 4 + 1];
+        const b = imgData[i * 4 + 2];
+        const avg = (r + g + b) / 3;
+        isWaterBuf[i] = avg < 127;
+      }
+    }
+
+    updateMap();
+
+  } catch (e) {
+    if (imageLoader.src !== url) return;
+    alert('ERROR: Could not load water mask - ' + e.message);
+    console.error('Could not load water mask', e);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+});
+
+/////////////////////////////////////
+//                                 //
+//  MAP NBT SAVING                 //
+//                                 //
+/////////////////////////////////////
+
 function nbtTag(id, name, payloadSize, encode) {
   const bytes = new Uint8Array(3 + name.length + payloadSize);
   bytes[0] = id;
   const dv = new DataView(bytes.buffer);
   dv.setUint16(1, name.length);
+  // This would cause problems if we tried to encode non-ASCII
+  // tag names, but we don't.
   new TextEncoder().encodeInto(name, bytes.subarray(3));
   if (encode) encode(dv, 3 + name.length);
   return bytes;
@@ -287,9 +372,12 @@ const saveNbt = document.getElementById('save-nbt');
 saveNbt.addEventListener('click', async e => {
   if (e.button !== 0) return;
 
+  // Don't let users click again until this finishes
   saveNbt.disabled = true;
 
   try {
+    // Matches the 1.11 format, which can be loaded
+    // by all future versions as of 26.1.2.
     const stream = new ReadableStream({ start: controller => {
       controller.enqueue(nbtCompound(''));
       controller.enqueue(nbtCompound('data'));
@@ -323,47 +411,11 @@ saveNbt.addEventListener('click', async e => {
   }
 });
 
-fileInput.addEventListener('change', async e => {
-  if (fileInput.files.length === 0) return;
-  const url = URL.createObjectURL(fileInput.files[0]);
-  fileInput.value = null;
-  try {
-    imageLoader.src = '';
-    imageLoader.src = url;
-    await imageLoader.decode();
-
-    maskCtx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
-    maskCtx.drawImage(imageLoader,
-      0, 0, imageLoader.naturalWidth, imageLoader.naturalHeight,
-      0, 0, MAP_SIZE, MAP_SIZE);
-    const imgData = maskCtx.getImageData(0, 0, MAP_SIZE, MAP_SIZE, {
-      colorSpace: 'srgb',
-      pixelFormat: 'rgba-unorm8',
-    }).data;
-
-    for (let i = 0; i < isWaterBuf.length; i++) {
-      const a = imgData[i * 4 + 3];
-      if (a < 5) {
-        isWaterBuf[i] = false;
-      } else {
-        const r = imgData[i * 4 + 0];
-        const g = imgData[i * 4 + 1];
-        const b = imgData[i * 4 + 2];
-        const avg = (r + g + b) / 3;
-        isWaterBuf[i] = avg < 127;
-      }
-    }
-
-    updateMap();
-
-  } catch (e) {
-    if (imageLoader.src !== url) return;
-    alert('ERROR: Could not load water mask - ' + e.message);
-    console.error('Could not load water mask', e);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-});
+/////////////////////////////////////
+//                                 //
+//  MAP COLOR TABLES               //
+//                                 //
+/////////////////////////////////////
 
 const brightnessScales = [180, 220, 255, 135];
 const baseColors = [
