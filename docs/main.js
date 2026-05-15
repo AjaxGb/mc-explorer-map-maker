@@ -7,24 +7,28 @@ const centerZ = document.getElementById('center-z');
 const mapCtx = mapOut.getContext('2d');
 
 const MAP_SIZE = 128;
-/// Input buffer: 1 where water, 0 where not.
+// Input buffer: 1 where water, 0 where not.
+// Updated by drawing and loading masks.
 const isWaterBuf = new Uint8Array(MAP_SIZE * MAP_SIZE);
-/// Output buffer with the map color indices, for NBT.
+// Output buffer with the map color indices.
+// Generated from `isWaterBuf` whenever it changes and used for saving NBT.
 const mapColorIndexBuf = new Uint8Array(MAP_SIZE * MAP_SIZE);
-/// Output RGB, to be shown in the display canvas.
+// Scratch RGBA buffer for updating canvases.
+// Used both for updating the main canvas and for saving masks,
+// so its contents should not be depended on outside of a single function.
 const mapRgbBuf = new Uint8ClampedArray(MAP_SIZE * MAP_SIZE * 4);
 
-/// Canvas used for converting `isWaterBuf` to and from mask images
+// Canvas used for converting `isWaterBuf` to and from mask images
 const maskCanvas = document.createElement('canvas');
 maskCanvas.width = MAP_SIZE;
 maskCanvas.height = MAP_SIZE;
 const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
 
-/// Link for downloading masks and NBT files
+// Link for downloading masks and NBT files
 const downloadLink = document.createElement('a');
 document.body.appendChild(downloadLink);
 
-/// File input for loading mask images
+// File input for loading mask images
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.accept = 'image/*';
@@ -48,7 +52,7 @@ function getMapPos(e) {
   ];
 }
 
-/// Bresenham's line algorithm
+// Bresenham's line algorithm
 function plotLine(x0, y0, x1, y1, callback) {
   const dx = Math.abs(x1 - x0);
   const sx = x0 < x1 ? 1 : -1;
